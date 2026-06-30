@@ -1,0 +1,76 @@
+# Configuration for the ECG Image Digitization pipeline
+
+# General settings
+seed: 42
+verbose: 1
+
+# Path configurations
+paths:
+  dataset_dir: "dataset"
+  ptbxl_dir: "dataset/ptbxl"
+  generated_images_dir: "dataset/generated_images"
+  masks_dir: "dataset/masks"
+  signals_dir: "dataset/signals"
+  train_dir: "dataset/train"
+  val_dir: "dataset/val"
+  test_dir: "dataset/test"
+  saved_models_dir: "saved_models"
+  outputs_dir: "outputs"
+  predictions_dir: "outputs/predictions"
+  plots_dir: "outputs/plots"
+  reconstructed_dir: "outputs/reconstructed_signals"
+
+# ECG Synthetic Image Generation parameters
+generator:
+  sample_rate: 500              # Hz (PTB-XL standard sample rate)
+  duration: 10                  # seconds (standard 12-lead ECG strip duration)
+  num_leads: 12                 # standard 12 leads
+  image_width: 2048             # pixels (multiple of 32 for UNet compatibility)
+  image_height: 1536            # pixels (multiple of 32 for UNet compatibility)
+  dpi: 300
+  grid_color: [255, 200, 200]   # RGB light pink
+  line_color: [0, 0, 0]         # RGB black signal curve
+  grid_spacing_mm: 1.0          # minor grid spacing
+  major_grid_spacing_mm: 5.0    # major grid spacing
+
+# Image Preprocessing & Data Loader
+preprocess:
+  target_width: 512             # target width for UNet input
+  target_height: 512            # target height for UNet input
+  batch_size: 16
+  shuffle_buffer: 1000
+  augmentation:
+    rotation_range: 5           # degrees
+    zoom_range: 0.05
+    horizontal_flip: false
+    vertical_flip: false
+
+# UNet Model hyperparameters
+model:
+  name: "ecg_unet"
+  input_shape: [512, 512, 3]    # Height, Width, Channels
+  num_classes: 1                # binary segmentation (signal vs background)
+  filters: [32, 64, 128, 256, 512]
+  dropout_rate: 0.1
+  activation: "relu"
+  final_activation: "sigmoid"
+
+# Training parameters
+training:
+  learning_rate: 0.001
+  loss: "dice_coef_loss"        # choices: binary_crossentropy, dice_coef_loss, hybrid
+  epochs: 50
+  batch_size: 16
+  early_stopping_patience: 10
+  reduce_lr_patience: 5
+  reduce_lr_factor: 0.5
+
+# Post-processing Signal Reconstruction parameters
+reconstruction:
+  threshold: 0.5                # threshold for binarization of UNet predicted mask
+  smoothing_window: 5           # window size for smoothing time-series output
+  lead_layout: "standard_3x4"   # layout standard for multi-lead parsing
+
+# Evaluation parameters
+evaluation:
+  metrics: ["rmse", "pearson_corr", "snr"]
